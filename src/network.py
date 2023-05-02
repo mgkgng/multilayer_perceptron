@@ -73,12 +73,16 @@ class Network:
             self.weights = [w - (lr / len(X_train)) * nw for w, nw in zip(self.weights, nabla_w)]
             self.biases = [b - (lr / len(X_train)) * nb for b, nb in zip(self.biases, nabla_b)]
 
-            # Validation loss
+            # Validation loss & accuracy
+            correct = 0
             for x, y in zip(X_val, y_val):
                 pred = self.feedforward(x.reshape(-1, 1))
                 loss = self.cross_entropy(pred, y.reshape(-1, 1))
                 self.val_loss.append(loss)
+                if np.argmax(pred) == np.argmax(y):
+                    correct += 1
 
-            print(f'Epoch {epoch + 1}/{epochs} - Loss: {np.mean(self.loss):.4f} - Val Loss: {np.mean(self.val_loss):.4f}')
+            print(f'Epoch {epoch + 1}/{epochs} - Loss: {np.mean(self.loss):.4f} - Val Loss: {np.mean(self.val_loss):.4f} - Val Accuracy: {correct / len(X_val) * 100:.2f}%')
             self.loss = []
             self.val_loss = []
+
