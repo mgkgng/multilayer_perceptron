@@ -8,9 +8,10 @@ class Network:
         self.sizes = sizes
         self.biases = [np.random.randn(y, 1) for y in sizes[1:]]
         self.weights = [np.random.randn(y, x) for x, y in zip(sizes[:-1], sizes[1:])]
-        self.loss = []
         self.zs = []
         self.activations = []
+        self.loss = []
+        self.val_loss = []
 
     def activation(self, z, output=False):
         if output is True:
@@ -35,6 +36,9 @@ class Network:
         self.activations.append(a)
         return a
 
+    def cross_entropy(self, y_hat, y):
+        return -np.sum(y * np.log(y_hat) + (1 - y) * np.log(1 - y_hat)) / len(y)
+
     def backprop(self, X, y):
         nabla_b = [np.zeros(b.shape) for b in self.biases]
         nabla_w = [np.zeros(w.shape) for w in self.weights]
@@ -42,7 +46,8 @@ class Network:
         pred = self.feedforward(X)
 
         err = pred - y
-        self.loss.append(np.sum(err ** 2)) # MSE
+        loss = self.cross_entropy(pred, y)
+        self.loss.append(loss)
 
         delta = err * self.activation_prime(self.zs[-1], output=True)
         nabla_b[-1] = delta
@@ -55,19 +60,25 @@ class Network:
 
         return nabla_b, nabla_w
 
-    def train(self, X, y, epochs, lr):
+    def train(self, X_train, y_train, X_val, y_val, epochs, lr):
         for epoch in range(epochs):
             nabla_b = [np.zeros(b.shape) for b in self.biases]
             nabla_w = [np.zeros(w.shape) for w in self.weights]
 
-            for x, y_hat in zip(X, y):
-                delta_nabla_b, delta_nabla_w = self.backprop(x.reshape(-1, 1), y_hat.reshape(-1, 1))
+            for x, y in zip(X_train, y_train):
+                delta_nabla_b, delta_nabla_w = self.backprop(x.reshape(-1, 1), y.reshape(-1, 1))
                 nabla_b = [nb + dnb for nb, dnb in zip(nabla_b, delta_nabla_b)]
                 nabla_w = [nw + dnw for nw, dnw in zip(nabla_w, delta_nabla_w)]
             
-            self.weights = [w - (lr / len(X)) * nw for w, nw in zip(self.weights, nabla_w)]
-            self.biases = [b - (lr / len(X)) * nb for b, nb in zip(self.biases, nabla_b)]
+            self.weights = [w - (lr / len(X_train)) * nw for w, nw in zip(self.weights, nabla_w)]
+            self.biases = [b - (lr / len(X_train)) * nb for b, nb in zip(self.biases, nabla_b)]
 
-            loss = np.average(self.loss)
-            print(f'Epoch {epoch + 1}/{epochs} - Loss: {loss:.4f}')
+            # Validation loss
+            for x, y in zip(X_val, y_val):
+                pred = self.feedforward(x.reshape(-1, 1))
+                loss = self.cross_entropy(pred, y.reshape(-1, 1))
+                self.val_loss.append(loss)
+
+            print(f'Epoch {epoch + 1}/{epochs} - Loss: {np.mean(self.loss):.4f} - Val Loss: {np.mean(self.val_loss):.4f}')
             self.loss = []
+            self.val_loss = []
