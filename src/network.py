@@ -13,7 +13,7 @@ class Network:
         self.activations = []
 
     def activation(self, z, output=False):
-        if output:
+        if output is True:
             return np.exp(z) / np.sum(np.exp(z)) # softmax
         return 1.0 / (1.0 + np.exp(-z)) # sigmoid
 
@@ -55,5 +55,19 @@ class Network:
 
         return nabla_b, nabla_w
 
-    def train(self, X, y, epochs, lr, batch_size):
-        pass
+    def train(self, X, y, epochs, lr):
+        for epoch in range(epochs):
+            nabla_b = [np.zeros(b.shape) for b in self.biases]
+            nabla_w = [np.zeros(w.shape) for w in self.weights]
+
+            for x, y_hat in zip(X, y):
+                delta_nabla_b, delta_nabla_w = self.backprop(x.reshape(-1, 1), y_hat.reshape(-1, 1))
+                nabla_b = [nb + dnb for nb, dnb in zip(nabla_b, delta_nabla_b)]
+                nabla_w = [nw + dnw for nw, dnw in zip(nabla_w, delta_nabla_w)]
+            
+            self.weights = [w - (lr / len(X)) * nw for w, nw in zip(self.weights, nabla_w)]
+            self.biases = [b - (lr / len(X)) * nb for b, nb in zip(self.biases, nabla_b)]
+
+            loss = np.average(self.loss)
+            print(f'Epoch {epoch + 1}/{epochs} - Loss: {loss:.4f}')
+            self.loss = []
