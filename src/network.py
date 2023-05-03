@@ -2,7 +2,7 @@ import numpy as np
 from mini_batch import MiniBatchGenerator
 
 class Network:
-    def __init__(self, sizes):
+    def __init__(self, sizes, patience=15, min_delta=0.0001):
         if len(sizes) < 4:
             raise ValueError('At least two hidden layers are required.')
         self.num_layers = len(sizes)
@@ -13,6 +13,9 @@ class Network:
         self.activations = []
         self.loss = []
         self.val_loss = []
+        self.patience = patience
+        self.min_delta = min_delta
+
 
     def activation(self, z, output=False):
         if output is True:
@@ -93,6 +96,19 @@ class Network:
             self.loss = []
             self.val_loss = []
 
+    def check_early_stopping(self, val_loss, epoch_nb):
+        if val_loss < self.best_val_loss - self.min_delta:
+            self.best_val_loss = val_loss
+            self.stagnated_epochs_nb = 0
+        else:
+            self.stagnated_epochs_nb += 1
+        
+        if self.stagnated_epochs_nb >= self.patience:
+            print(f'Early stopping after {epoch_nb + 1} epochs')
+            return False
+        return True
+
+
     # Stochastic Gradient Descent
     def SGD(self, X_train, y_train, X_val, y_val, epochs, lr, batch_size):
         mini_batches = MiniBatchGenerator(X_train, y_train, batch_size)
@@ -115,10 +131,13 @@ class Network:
             self.val_loss = []
 
     # Nesterov Accelerated Gradient
-    def NAG(self, X_train, y_train, X_val, y_val, epochs, lr, batch_size, mu=0.9):
+    def NAG(self, X_train, y_train, X_val, y_val, epochs, lr, batch_size, mu=0.9, early_stopping=False):
         mini_batches = MiniBatchGenerator(X_train, y_train, batch_size)
         vel_w = [np.zeros(w.shape) for w in self.weights]
         vel_b = [np.zeros(b.shape) for b in self.biases]
+        if early_stopping:
+            self.best_val_loss = np.inf
+            self.stagnated_epochs_nb = 0
 
         for epoch in range(epochs):
             for X_batch, y_batch in mini_batches:
@@ -147,3 +166,17 @@ class Network:
             self.loss = []
             self.val_loss = []
 
+            if early_stopping:
+                res = self.check_early_stopping(val_loss, epoch)
+                if res is False:
+                    break
+            
+
+    # Root Mean Square Propagation
+    # beta: decay rate to update the moving average of the squared gradient
+    def RMSProp(self, X_train, y_train, X_val, y_val, batch_size, epochs, lr, beta=0.9, epsilon=1e-8):
+        pass
+
+    # Adaptive Moment Estimation
+    def Adam(self, ):
+        pass
