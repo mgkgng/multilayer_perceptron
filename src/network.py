@@ -15,6 +15,8 @@ class Network:
         self.val_loss = []
         self.patience = patience
         self.min_delta = min_delta
+        self.best_weights = None
+        self.best_biases = None
 
 
     def activation(self, z, output=False, epsilon=1e-8):
@@ -101,13 +103,13 @@ class Network:
         if val_loss < self.best_val_loss - self.min_delta:
             self.best_val_loss = val_loss
             self.stagnated_epochs_nb = 0
-        else:
-            self.stagnated_epochs_nb += 1
+            return 0
         
+        self.stagnated_epochs_nb += 1
         if self.stagnated_epochs_nb >= self.patience:
             print(f'Early stopping after {epoch_nb + 1} epochs')
-            return False
-        return True
+            return 2
+        return 1
 
 
     # Stochastic Gradient Descent
@@ -169,7 +171,13 @@ class Network:
 
             if early_stopping:
                 res = self.check_early_stopping(val_loss, epoch)
-                if res is False:
+                if res == 0:
+                    self.best_weights = self.weights
+                    self.best_biases = self.biases
+                elif res == 2:
+                    # Restore best weights and biases
+                    self.weights = self.best_weights
+                    self.biases = self.best_biases
                     break
             
 
@@ -209,7 +217,13 @@ class Network:
 
             if early_stopping:
                 res = self.check_early_stopping(val_loss, epoch)
-                if res is False:
+                if res == 0:
+                    self.best_weights = self.weights
+                    self.best_biases = self.biases
+                elif res == 2:
+                    # Restore best weights and biases
+                    self.weights = self.best_weights
+                    self.biases = self.best_biases
                     break
     
     # Adaptive Moment Estimation
@@ -265,5 +279,11 @@ class Network:
 
             if early_stopping:
                 res = self.check_early_stopping(val_loss, epoch)
-                if res is False:
+                if res == 0:
+                    self.best_weights = self.weights
+                    self.best_biases = self.biases
+                elif res == 2:
+                    # Restore best weights and biases
+                    self.weights = self.best_weights
+                    self.biases = self.best_biases
                     break
