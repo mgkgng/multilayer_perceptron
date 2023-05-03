@@ -17,7 +17,7 @@ class Network:
         self.min_delta = min_delta
 
 
-    def activation(self, z, output=False):
+    def activation(self, z, output=False, epsilon=1e-8):
         if output is True:
             return np.exp(z) / np.sum(np.exp(z)) # softmax
         return 1.0 / (1.0 + np.exp(-z)) # sigmoid
@@ -44,8 +44,8 @@ class Network:
         self.activations.append(a)
         return a
 
-    def cross_entropy(self, y_hat, y):
-        return -np.sum(y * np.log(y_hat) + (1 - y) * np.log(1 - y_hat)) / len(y)
+    def cross_entropy(self, y_hat, y, epsilon=1e-8):
+        return -np.sum(y * np.log(y_hat + epsilon) + (1 - y) * np.log(1 - y_hat + epsilon)) / len(y)
 
     def backprop(self, X, y, w_lookahead=None, b_lookahead=None):
         nabla_b = [np.zeros(b.shape) for b in self.biases]
@@ -97,6 +97,7 @@ class Network:
             self.val_loss = []
 
     def check_early_stopping(self, val_loss, epoch_nb):
+        # TODO? restore best weights and biases
         if val_loss < self.best_val_loss - self.min_delta:
             self.best_val_loss = val_loss
             self.stagnated_epochs_nb = 0
@@ -212,5 +213,57 @@ class Network:
                     break
     
     # Adaptive Moment Estimation
-    def Adam(self, ):
-        pass
+    def Adam(self, X_train, y_train, X_val, y_val, batch_size, epochs, lr, mu=0.9, beta=0.999, epsilon=1e-8, early_stopping=False):
+        mini_batches = MiniBatchGenerator(X_train, y_train, batch_size)
+        m_w = [np.zeros(w.shape) for w in self.weights]
+        m_b = [np.zeros(b.shape) for b in self.biases]
+        v_w = [np.zeros(w.shape) for w in self.weights]
+        v_b = [np.zeros(b.shape) for b in self.biases]
+
+        if early_stopping:
+            self.best_val_loss = np.inf
+            self.stagnated_epochs_nb = 0
+
+        for epoch in range(epochs):
+            for X_batch, y_batch in mini_batches:
+                nabla_b = [np.zeros(b.shape) for b in self.biases]
+                nabla_w = [np.zeros(w.shape) for w in self.weights]
+
+                for x, y in zip(X_batch, y_batch):
+                    delta_nabla_b, delta_nabla_w = self.backprop(x.reshape(-1, 1), y.reshape(-1, 1))                        
+                    nabla_b = [nb + dnb for nb, dnb in zip(nabla_b, delta_nabla_b)]
+                    nabla_w = [nw + dnw for nw, dnw in zip(nabla_w, delta_nabla_w)]
+                
+                # Loss
+                dw = [nw / len(X_batch) for nw in nabla_w]
+                db = [nb / len(X_batch) for nb in nabla_b]
+
+                # Update moving average of the gradient
+                m_w = [mu * mw + (1 - mu) * dw for mw, dw in zip(m_w, dw)]
+                m_b = [mu * mb + (1 - mu) * db for mb, db in zip(m_b, db)]
+
+                # Update moving average of the squared gradient
+                v_w = [beta * vw + (1 - beta) * np.square(dw) for vw, dw in zip(v_w, dw)]
+                v_b = [beta * vb + (1 - beta) * np.square(db) for vb, db in zip(v_b, db)]
+
+                # Compute bias-corrected first moment estimate
+                m_w_corr = [mw / (1 - mu ** (epoch + 1)) for mw in m_w]
+                m_b_corr = [mb / (1 - mu ** (epoch + 1)) for mb in m_b]
+
+                # Compute bias-corrected second raw moment estimate
+                v_w_corr = [vw / (1 - beta ** (epoch + 1)) for vw in v_w]
+                v_b_corr = [vb / (1 - beta ** (epoch + 1)) for vb in v_b]
+
+                # Update parameters
+                self.weights = [w - (lr * mw_corr) / (np.sqrt(vw_corr) + epsilon) for w, mw_corr, vw_corr in zip(self.weights, m_w_corr, v_w_corr)]
+                self.biases = [b - (lr * mb_corr) / (np.sqrt(vb_corr) + epsilon) for b, mb_corr, vb_corr in zip(self.biases, m_b_corr, v_b_corr)]
+
+            val_loss, val_acc = self.validate(X_val, y_val)
+            print(f'Epoch {epoch + 1}/{epochs} - Loss: {np.mean(self.loss):.4f} - Val Loss: {val_loss:.4f} - Val Accuracy: {val_acc * 100:.2f}%')
+            self.loss = []
+            self.val_loss = []
+
+            if early_stopping:
+                res = self.check_early_stopping(val_loss, epoch)
+                if res is False:
+                    break
