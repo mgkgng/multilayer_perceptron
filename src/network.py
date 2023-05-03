@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from mini_batch import MiniBatchGenerator
 
 class Network:
@@ -13,6 +14,7 @@ class Network:
         self.activations = []
         self.loss = []
         self.val_loss = []
+        self.loss_progress = []
         self.patience = patience
         self.min_delta = min_delta
         self.best_weights = None
@@ -274,6 +276,7 @@ class Network:
 
             val_loss, val_acc = self.validate(X_val, y_val)
             print(f'Epoch {epoch + 1}/{epochs} - Loss: {np.mean(self.loss):.4f} - Val Loss: {val_loss:.4f} - Val Accuracy: {val_acc * 100:.2f}%')
+            self.loss_progress.append(val_loss)
             self.loss = []
             self.val_loss = []
 
@@ -283,7 +286,16 @@ class Network:
                     self.best_weights = self.weights
                     self.best_biases = self.biases
                 elif res == 2:
+                    # TODO better -> in order to restore the best weights, should keep the best one and compare the loss each time
                     # Restore best weights and biases
                     self.weights = self.best_weights
                     self.biases = self.best_biases
                     break
+        self.plot_progress()
+
+    def plot_progress(self):
+        plt.plot(self.loss_progress)
+        plt.title('Validation loss')
+        plt.xlabel('Epochs')
+        plt.ylabel('Loss')
+        plt.show()
