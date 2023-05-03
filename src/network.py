@@ -1,4 +1,5 @@
 import numpy as np
+from mini_batch import MiniBatchGenerator
 
 class Network:
     def __init__(self, sizes):
@@ -86,3 +87,32 @@ class Network:
             self.loss = []
             self.val_loss = []
 
+
+    def SGD(self, X_train, y_train, X_val, y_val, epochs, lr, batch_size):
+        mini_batches = MiniBatchGenerator(X_train, y_train, batch_size)
+        print(X_train.shape)
+        for epoch in range(epochs):
+            for X_batch, y_batch in mini_batches:
+                nabla_b = [np.zeros(b.shape) for b in self.biases]
+                nabla_w = [np.zeros(w.shape) for w in self.weights]
+
+                for x, y in zip(X_batch, y_batch):
+                    delta_nabla_b, delta_nabla_w = self.backprop(x.reshape(-1, 1), y.reshape(-1, 1))
+                    nabla_b = [nb + dnb for nb, dnb in zip(nabla_b, delta_nabla_b)]
+                    nabla_w = [nw + dnw for nw, dnw in zip(nabla_w, delta_nabla_w)]
+                
+                self.weights = [w - (lr / len(X_batch)) * nw for w, nw in zip(self.weights, nabla_w)]
+                self.biases = [b - (lr / len(X_batch)) * nb for b, nb in zip(self.biases, nabla_b)]
+
+            # Validation loss & accuracy
+            correct = 0
+            for x, y in zip(X_val, y_val):
+                pred = self.feedforward(x.reshape(-1, 1))
+                loss = self.cross_entropy(pred, y.reshape(-1, 1))
+                self.val_loss.append(loss)
+                if np.argmax(pred) == np.argmax(y):
+                    correct += 1
+
+            print(f'Epoch {epoch + 1}/{epochs} - Loss: {np.mean(self.loss):.4f} - Val Loss: {np.mean(self.val_loss):.4f} - Val Accuracy: {correct / len(X_val) * 100:.2f}%')
+            self.loss = []
+            self.val_loss = []
