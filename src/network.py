@@ -174,9 +174,43 @@ class Network:
 
     # Root Mean Square Propagation
     # beta: decay rate to update the moving average of the squared gradient
-    def RMSProp(self, X_train, y_train, X_val, y_val, batch_size, epochs, lr, beta=0.9, epsilon=1e-8):
-        pass
+    def RMSProp(self, X_train, y_train, X_val, y_val, batch_size, epochs, lr, beta=0.9, epsilon=1e-8, early_stopping=False):
+        mini_batches = MiniBatchGenerator(X_train, y_train, batch_size)
+        squared_w = [np.zeros(w.shape) for w in self.weights]
+        squared_b = [np.zeros(b.shape) for b in self.biases]
+        if early_stopping:
+            self.best_val_loss = np.inf
+            self.stagnated_epochs_nb = 0
 
+        for epoch in range(epochs):
+            for X_batch, y_batch in mini_batches:
+                nabla_b = [np.zeros(b.shape) for b in self.biases]
+                nabla_w = [np.zeros(w.shape) for w in self.weights]
+
+                for x, y in zip(X_batch, y_batch):
+                    delta_nabla_b, delta_nabla_w = self.backprop(x.reshape(-1, 1), y.reshape(-1, 1))                        
+                    nabla_b = [nb + dnb for nb, dnb in zip(nabla_b, delta_nabla_b)]
+                    nabla_w = [nw + dnw for nw, dnw in zip(nabla_w, delta_nabla_w)]
+                
+                dw = [nw / len(X_batch) for nw in nabla_w]
+                db = [nb / len(X_batch) for nb in nabla_b]
+
+                squared_w = [beta * sw + (1 - beta) * np.square(dw) for sw, dw in zip(squared_w, dw)]
+                squared_b = [beta * sb + (1 - beta) * np.square(db) for sb, db in zip(squared_b, db)]
+
+                self.weights = [w - (lr * dw) / (np.sqrt(sw) + epsilon) for w, dw, sw in zip(self.weights, dw, squared_w)]
+                self.biases = [b - (lr * db) / (np.sqrt(sb) + epsilon) for b, db, sb in zip(self.biases, db, squared_b)]
+
+            val_loss, val_acc = self.validate(X_val, y_val)
+            print(f'Epoch {epoch + 1}/{epochs} - Loss: {np.mean(self.loss):.4f} - Val Loss: {val_loss:.4f} - Val Accuracy: {val_acc * 100:.2f}%')
+            self.loss = []
+            self.val_loss = []
+
+            if early_stopping:
+                res = self.check_early_stopping(val_loss, epoch)
+                if res is False:
+                    break
+    
     # Adaptive Moment Estimation
     def Adam(self, ):
         pass

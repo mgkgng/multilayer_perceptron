@@ -18,4 +18,5 @@ X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_st
 
 network = Network([30, 16, 16, 2])
 # network.SGD(X_train, y_train, X_val, y_val, epochs=1000, lr=0.03, batch_size=16)
-network.NAG(X_train, y_train, X_val, y_val, epochs=1000, lr=0.03, batch_size=32, mu=0.4, early_stopping=True)
+# network.NAG(X_train, y_train, X_val, y_val, epochs=1000, lr=0.03, batch_size=32, mu=0.4, early_stopping=True)
+network.RMSProp(X_train, y_train, X_val, y_val, epochs=1000, lr=0.05, batch_size=32, beta=0.9, epsilon=1e-8)
