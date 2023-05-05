@@ -3,23 +3,22 @@ import matplotlib.pyplot as plt
 from mini_batch import MiniBatchGenerator
 
 class Network:
-    def __init__(self, sizes, patience=15, min_delta=0.0001):
+    def __init__(self, sizes, **kwargs):
         if len(sizes) < 4:
             raise ValueError('At least two hidden layers are required.')
         self.num_layers = len(sizes)
         self.sizes = sizes
-        self.biases = [np.random.randn(y, 1) for y in sizes[1:]]
-        self.weights = [np.random.randn(y, x) for x, y in zip(sizes[:-1], sizes[1:])]
+        self.biases = kwargs.get('biases', [np.random.randn(y, 1) for y in sizes[1:]])
+        self.weights = kwargs.get('weights', [np.random.randn(y, x) for x, y in zip(sizes[:-1], sizes[1:])])
         self.zs = []
         self.activations = []
         self.loss = []
         self.val_loss = []
         self.loss_progress = []
-        self.patience = patience
-        self.min_delta = min_delta
+        self.patience = kwargs.get('patience', 15)
+        self.min_delta = kwargs.get('min_delta', 0.0005)
         self.best_weights = None
         self.best_biases = None
-
 
     def activation(self, z, output=False, epsilon=1e-8):
         if output is True:
@@ -126,7 +125,7 @@ class Network:
                     delta_nabla_b, delta_nabla_w = self.backprop(x.reshape(-1, 1), y.reshape(-1, 1))                        
                     nabla_b = [nb + dnb for nb, dnb in zip(nabla_b, delta_nabla_b)]
                     nabla_w = [nw + dnw for nw, dnw in zip(nabla_w, delta_nabla_w)]
-                
+
                 self.weights = [w - lr * (nw / len(X_batch)) for w, nw in zip(self.weights, nabla_w)]
                 self.biases = [b - lr * (nb / len(X_batch)) for b, nb in zip(self.biases, nabla_b)]
 
@@ -387,7 +386,12 @@ class Network:
         plt.show()
 
     def predict(self, X):
-        return np.argmax(self.feedforward(X), axis=0)
-    
+        y_pred = np.argmax(self.feedforward(X.T), axis=0) 
+        print('Prediction finished')
+        return y_pred 
+
     def save(self, path):
-        np.savez(path, weights=self.weights, biases=self.biases)
+        for i, w in enumerate(self.weights):
+            np.save(path + 'weights' + str(i), w)
+        for i, b in enumerate(self.biases):
+            np.save(path + 'biases' + str(i), b)

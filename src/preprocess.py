@@ -12,7 +12,7 @@ def load_data(path):
     print('Data loading completed successfully')
     return df
 
-def preprocess_data(df, k_fold=False):
+def preprocess_data(df, predict=False,  k_fold=False):
     # Drop the features which have a p-value > 0.01 (Kolmogorov-Smirnov test)
     exam = {}
     for col in df.columns[1:]:
@@ -31,8 +31,10 @@ def preprocess_data(df, k_fold=False):
     normalize = lambda x: (x - x.min()) / (x.max() - x.min())
     df[to_normalize] = df[to_normalize].apply(normalize)
 
-    X, y = df.iloc[:, :-2].values, df.iloc[:, -2:].values
     print('Data preprocessing completed successfully')
+    X, y = df.iloc[:, :-2].values, df.iloc[:, -2:].values
+    if predict == True:
+        return X, y
     if k_fold == True:
         return KFoldGenerator(X, y, n_splits=10, shuffle=True)
     return train_test_split(X, y, test_size=0.2, random_state=42)
