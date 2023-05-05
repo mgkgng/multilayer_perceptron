@@ -26,5 +26,5 @@ def train(df, method='Default', compare=False):
 
 if __name__ == '__main__':
     train_df = load_data('../assets/data.csv')
-    train(train_df, 'Adam_KFold')
+    train(train_df, 'Default')
 

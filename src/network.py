@@ -409,7 +409,11 @@ class Network:
     def predict(self, X):
         y_pred = np.argmax(self.feedforward(X.T), axis=0) 
         print('Prediction finished')
-        return y_pred 
+        return y_pred
+
+    ## just for validation
+    def result(self, X):
+        return self.feedforward(X.T)
 
     def save(self, path):
         for i, w in enumerate(self.weights):
