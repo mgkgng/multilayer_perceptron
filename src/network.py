@@ -305,6 +305,9 @@ class Network:
 
         for epoch in range(epochs):
             for X_train, y_train, X_val, y_val in kf_gen:
+                k_fold_loss = []
+                k_fold_val_loss = []
+                k_fold_val_acc = []
                 mini_batches = MiniBatchGenerator(X_train, y_train, batch_size)
 
                 for X_batch, y_batch in mini_batches:
@@ -340,11 +343,19 @@ class Network:
                     self.weights = [w - (lr * mw_corr) / (np.sqrt(vw_corr) + epsilon) for w, mw_corr, vw_corr in zip(self.weights, m_w_corr, v_w_corr)]
                     self.biases = [b - (lr * mb_corr) / (np.sqrt(vb_corr) + epsilon) for b, mb_corr, vb_corr in zip(self.biases, m_b_corr, v_b_corr)]
 
-            val_loss, val_acc = self.validate(X_val, y_val)
-            print(f'Epoch {epoch + 1}/{epochs} - Loss: {np.mean(self.loss):.4f} - Val Loss: {val_loss:.4f} - Val Accuracy: {val_acc * 100:.2f}%')
+                    k_val_loss, k_val_acc = self.validate(X_val, y_val)
+                    k_fold_loss.append(np.mean(self.loss))
+                    k_fold_val_loss.append(k_val_loss)
+                    k_fold_val_acc.append(k_val_acc)
+                    
+                    self.loss = []
+                    self.val_loss = []
+
+            loss = np.mean(k_fold_loss)
+            val_loss = np.mean(k_fold_val_loss)
+            val_acc = np.mean(k_fold_val_acc)
+            print(f'Epoch {epoch + 1}/{epochs} - Loss: {loss:.4f} - Val Loss: {val_loss:.4f} - Val Accuracy: {val_acc * 100:.2f}%')
             self.loss_progress.append(val_loss)
-            self.loss = []
-            self.val_loss = []
 
             if early_stopping:
                 res = self.check_early_stopping(val_loss, epoch)
