@@ -18,20 +18,24 @@ def load_params(path):
         weights.append(np.load(wfile))
     return biases, weights
 
+def predict(X, y, compare=False):
+    biases, weights = load_params('../assets/')
+    network = Network([26, 24, 24, 2], biases=biases, weights=weights)
+
+    y_pred = network.predict(X)
+    accuracy = accuracy_score(y, y_pred)
+    precision = precision_score(y, y_pred)
+    recall = recall_score(y, y_pred)
+    f1 = f1_score(y, y_pred)
+
+    if compare == False:
+        print(f"Accuracy: {accuracy * 100:.2f}% | Precision: {precision  * 100:.2f}% | Recall: {recall  * 100:.2f}% | F1 Score: {f1:.6f}")
+    return accuracy, precision, recall, f1
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         raise ValueError("Please specify the path to the data file as the first argument.")
     train_df = load_data(sys.argv[1])
     X, y = preprocess_data(train_df, predict=True)
     y = np.argmax(y, axis=1)
-
-    biases, weights = load_params('../assets/')
-    network = Network([26, 24, 24, 2], biases=biases, weights=weights)
-    y_pred = network.predict(X)
-
-    accuracy = accuracy_score(y, y_pred)
-    precision = precision_score(y, y_pred)
-    recall = recall_score(y, y_pred)
-    f1 = f1_score(y, y_pred)
-
-    print(f"Accuracy: {accuracy * 100:.2f}% | Precision: {precision  * 100:.2f}% | Recall: {recall  * 100:.2f}% | F1 Score: {f1:.6f}")
+    predict(X, y)

@@ -16,9 +16,10 @@ class Network:
         self.val_loss = []
         self.loss_progress = []
         self.patience = kwargs.get('patience', 15)
-        self.min_delta = kwargs.get('min_delta', 0.0005)
+        self.min_delta = kwargs.get('min_delta', 0.001)
         self.best_weights = None
         self.best_biases = None
+        self.compare = kwargs.get('compare', False)
 
     def activation(self, z, output=False, epsilon=1e-8):
         if output is True:
@@ -81,7 +82,20 @@ class Network:
                 correct += 1
         return np.mean(self.val_loss), correct / len(X_val)
 
-    def train(self, X_train, y_train, X_val, y_val, epochs, lr):
+    def check_early_stopping(self, val_loss, epoch_nb):
+        # TODO? restore best weights and biases
+        if val_loss < self.best_val_loss - self.min_delta:
+            self.best_val_loss = val_loss
+            self.stagnated_epochs_nb = 0
+            return 0
+        
+        self.stagnated_epochs_nb += 1
+        if self.stagnated_epochs_nb >= self.patience:
+            print(f'Early stopping after {epoch_nb + 1} epochs')
+            return 2
+        return 1
+
+    def train_default(self, X_train, y_train, X_val, y_val, epochs, lr):
         for epoch in range(epochs):
             nabla_b = [np.zeros(b.shape) for b in self.biases]
             nabla_w = [np.zeros(w.shape) for w in self.weights]
@@ -95,23 +109,14 @@ class Network:
             self.biases = [b - lr * (nb / len(X_train)) for b, nb in zip(self.biases, nabla_b)]
 
             val_loss, val_acc = self.validate(X_val, y_val)
-            print(f'Epoch {epoch + 1}/{epochs} - Loss: {np.mean(self.loss):.4f} - Val Loss: {val_loss:.4f} - Val Accuracy: {val_acc * 100:.2f}%')
+            if self.compare == False:
+                print(f'Epoch {epoch + 1}/{epochs} - Loss: {np.mean(self.loss):.4f} - Val Loss: {val_loss:.4f} - Val Accuracy: {val_acc * 100:.2f}%')
             self.loss = []
             self.val_loss = []
+            self.loss_progress.append(val_loss)
         print('Training finished')
-
-    def check_early_stopping(self, val_loss, epoch_nb):
-        # TODO? restore best weights and biases
-        if val_loss < self.best_val_loss - self.min_delta:
-            self.best_val_loss = val_loss
-            self.stagnated_epochs_nb = 0
-            return 0
-        
-        self.stagnated_epochs_nb += 1
-        if self.stagnated_epochs_nb >= self.patience:
-            print(f'Early stopping after {epoch_nb + 1} epochs')
-            return 2
-        return 1
+        if self.compare == False:
+            self.plot_progress()
 
     # Stochastic Gradient Descent
     def SGD(self, X_train, y_train, X_val, y_val, epochs, lr, batch_size):
@@ -130,11 +135,14 @@ class Network:
                 self.biases = [b - lr * (nb / len(X_batch)) for b, nb in zip(self.biases, nabla_b)]
 
             val_loss, val_acc = self.validate(X_val, y_val)
-            print(f'Epoch {epoch + 1}/{epochs} - Loss: {np.mean(self.loss):.4f} - Val Loss: {val_loss:.4f} - Val Accuracy: {val_acc * 100:.2f}%')
+            if self.compare == False:
+                print(f'Epoch {epoch + 1}/{epochs} - Loss: {np.mean(self.loss):.4f} - Val Loss: {val_loss:.4f} - Val Accuracy: {val_acc * 100:.2f}%')
             self.loss = []
             self.val_loss = []
+            self.loss_progress.append(val_loss)
         print('Training finished')
-
+        if self.compare == False:
+            self.plot_progress()
 
     # Nesterov Accelerated Gradient
     def NAG(self, X_train, y_train, X_val, y_val, epochs, lr, batch_size, mu=0.9, early_stopping=False):
@@ -168,9 +176,11 @@ class Network:
                 self.biases = [b - vb for b, vb in zip(self.biases, vel_b)]
                 
             val_loss, val_acc = self.validate(X_val, y_val)
-            print(f'Epoch {epoch + 1}/{epochs} - Loss: {np.mean(self.loss):.4f} - Val Loss: {val_loss:.4f} - Val Accuracy: {val_acc * 100:.2f}%')
+            if self.compare == False:
+                print(f'Epoch {epoch + 1}/{epochs} - Loss: {np.mean(self.loss):.4f} - Val Loss: {val_loss:.4f} - Val Accuracy: {val_acc * 100:.2f}%')
             self.loss = []
             self.val_loss = []
+            self.loss_progress.append(val_loss)
 
             if early_stopping:
                 res = self.check_early_stopping(val_loss, epoch)
@@ -183,7 +193,8 @@ class Network:
                     self.biases = self.best_biases
                     break
         print('Training finished')
-            
+        if self.compare == False:
+            self.plot_progress()
 
     # Root Mean Square Propagation
     # beta: decay rate to update the moving average of the squared gradient
@@ -215,9 +226,11 @@ class Network:
                 self.biases = [b - (lr * db) / (np.sqrt(sb) + epsilon) for b, db, sb in zip(self.biases, db, squared_b)]
 
             val_loss, val_acc = self.validate(X_val, y_val)
-            print(f'Epoch {epoch + 1}/{epochs} - Loss: {np.mean(self.loss):.4f} - Val Loss: {val_loss:.4f} - Val Accuracy: {val_acc * 100:.2f}%')
+            if self.compare == False:
+                print(f'Epoch {epoch + 1}/{epochs} - Loss: {np.mean(self.loss):.4f} - Val Loss: {val_loss:.4f} - Val Accuracy: {val_acc * 100:.2f}%')
             self.loss = []
             self.val_loss = []
+            self.loss_progress.append(val_loss)
 
             if early_stopping:
                 res = self.check_early_stopping(val_loss, epoch)
@@ -231,6 +244,8 @@ class Network:
                     break
 
         print('Training finished')
+        if self.compare == False:
+            self.plot_progress()
 
     
     # Adaptive Moment Estimation
@@ -280,7 +295,8 @@ class Network:
                 self.biases = [b - (lr * mb_corr) / (np.sqrt(vb_corr) + epsilon) for b, mb_corr, vb_corr in zip(self.biases, m_b_corr, v_b_corr)]
 
             val_loss, val_acc = self.validate(X_val, y_val)
-            print(f'Epoch {epoch + 1}/{epochs} - Loss: {np.mean(self.loss):.4f} - Val Loss: {val_loss:.4f} - Val Accuracy: {val_acc * 100:.2f}%')
+            if self.compare == False:
+                print(f'Epoch {epoch + 1}/{epochs} - Loss: {np.mean(self.loss):.4f} - Val Loss: {val_loss:.4f} - Val Accuracy: {val_acc * 100:.2f}%')
             self.loss_progress.append(val_loss)
             self.loss = []
             self.val_loss = []
@@ -297,7 +313,8 @@ class Network:
                     self.biases = self.best_biases
                     break
         print('Training finished')
-        self.plot_progress()
+        if self.compare == False:
+            self.plot_progress()
 
     def Adam_KFold(self, kf_gen, batch_size, epochs, lr, mu=0.9, beta=0.999, epsilon=1e-8, early_stopping=False):
         m_w = [np.zeros(w.shape) for w in self.weights]
@@ -360,7 +377,8 @@ class Network:
             loss = np.mean(k_fold_loss)
             val_loss = np.mean(k_fold_val_loss)
             val_acc = np.mean(k_fold_val_acc)
-            print(f'Epoch {epoch + 1}/{epochs} - Loss: {loss:.4f} - Val Loss: {val_loss:.4f} - Val Accuracy: {val_acc * 100:.2f}%')
+            if self.compare == False:
+                print(f'Epoch {epoch + 1}/{epochs} - Loss: {loss:.4f} - Val Loss: {val_loss:.4f} - Val Accuracy: {val_acc * 100:.2f}%')
             self.loss_progress.append(val_loss)
 
             if early_stopping:
@@ -375,9 +393,12 @@ class Network:
                     self.biases = self.best_biases
                     break
         print('Training finished')
-        self.plot_progress()
+        if self.compare == False:
+            self.plot_progress()
 
     def plot_progress(self):
+        if self.compare == True:
+            return
         plt.plot(self.loss_progress)
         plt.title('Validation loss')
         plt.xlabel('Epochs')
