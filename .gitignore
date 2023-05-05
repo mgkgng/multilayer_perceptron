@@ -4,3 +4,6 @@ venv
 
 assets/biases*
 assets/weights*
+assets/box_plot.png
+assets/heatmap.png
+assets/histogram.png

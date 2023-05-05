@@ -26,7 +26,7 @@ def box_plot(df):
     # Create a histogram of each feature and color-code based on M/B column
     for i, col in enumerate(feature_cols):
         ax = axes[i // 6][i % 6]
-        sns.boxplot(x='diagnosis', y=col, hue='diagnosis',data=df, ax=ax)
+        sns.boxplot(x='Diagnosis', y=col, hue='Diagnosis',data=df, ax=ax)
         ax.set(xlabel=None, ylabel=None)
         ax.set_title(f'Feature {i + 1}')
 
@@ -35,11 +35,18 @@ def box_plot(df):
 
     plt.savefig('../assets/box_plot.png')
 
+def heatmap(df):
+    fig, ax = plt.subplots(figsize=(15, 15))
+    cmap = sns.diverging_palette(220, 10, as_cmap=True)
+    sns.heatmap(df.corr(), annot=True, cmap=cmap, ax=ax, linewidths=.5, fmt='.2f')
+    plt.savefig('../assets/heatmap.png')
+
 if __name__ == '__main__':
     df = pd.read_csv('../assets/data.csv', header=None)
-    cols = ['diagnosis'] + [f'feature_{i}' for i in range(1, 31)]
+    cols = ['Diagnosis'] + [f'Feature_{i}' for i in range(1, 31)]
     df = df.drop(df.columns[0], axis=1)
     df.columns = cols
 
     histogram(df)
     box_plot(df)
+    heatmap(df)
