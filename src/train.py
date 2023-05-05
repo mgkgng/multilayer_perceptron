@@ -1,35 +1,17 @@
-import pandas as pd
-from sklearn.model_selection import train_test_split
 from network import Network
-from k_fold import KFoldGenerator
+from preprocess import load_data, preprocess_data
 
-df = pd.read_csv('../assets/data.csv', header=None)
-df = df.drop(df.columns[0], axis=1)
+if __name__ == '__main__':
+    train_df = load_data('../assets/data.csv')
 
-cols = ['Diagnosis'] + [f'Feature_{i}' for i in range(1, 31)]
-df.columns = cols
+    X_train, X_val, y_train, y_val = preprocess_data(train_df, k_fold=False)
+    # kf_gen = preprocess_data(train_df, k_fold=True)
 
-# One-hot encoding for the diagnosis column
-one_hot = pd.get_dummies(df['Diagnosis'], prefix='Diagnosed')
-df = pd.concat([df, one_hot], axis=1)
-df.drop(['Diagnosis'], axis=1, inplace=True)
+    network = Network([26, 24, 24, 2], patience=15, min_delta=0.00005)
+    network.SGD(X_train, y_train, X_val, y_val, epochs=10, lr=0.03, batch_size=16)
+    # # network.NAG(X_train, y_train, X_val, y_val, epochs=1000, lr=0.03, batch_size=32, mu=0.4, early_stopping=True)
+    # # network.RMSProp(X_train, y_train, X_val, y_val, epochs=1000, lr=0.05, batch_size=32, beta=0.85, epsilon=1e-8, early_stopping=True)
+    # # network.Adam(X_train, y_train, X_val, y_val, epochs=1000, lr=0.03, batch_size=32, early_stopping=True)
+    # network.Adam_KFold(kf_gen, epochs=1000, lr=0.01, batch_size=32, early_stopping=True)
 
-# Normalize the data for the features which have too large values
-to_normalize = df.columns[df.max() > 1]
-normalize = lambda x: (x - x.min()) / (x.max() - x.min())
-df[to_normalize] = df[to_normalize].apply(normalize)
-
-X, y = df.iloc[:, :-2].values, df.iloc[:, -2:].values
-
-# Classic train-valid split
-X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
-
-# K-fold cross validation
-kf_gen = KFoldGenerator(X, y, n_splits=5, shuffle=True)
-
-network = Network([30, 24, 24, 2], patience=15, min_delta=0.00005)
-# network.SGD(X_train, y_train, X_val, y_val, epochs=1000, lr=0.03, batch_size=16)
-# network.NAG(X_train, y_train, X_val, y_val, epochs=1000, lr=0.03, batch_size=32, mu=0.4, early_stopping=True)
-# network.RMSProp(X_train, y_train, X_val, y_val, epochs=1000, lr=0.05, batch_size=32, beta=0.85, epsilon=1e-8, early_stopping=True)
-# network.Adam(X_train, y_train, X_val, y_val, epochs=1000, lr=0.03, batch_size=32, early_stopping=True)
-network.Adam_KFold(kf_gen, epochs=1000, lr=0.03, batch_size=32, early_stopping=True)
+    network.save('../assets/weights')

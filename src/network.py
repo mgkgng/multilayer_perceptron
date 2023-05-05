@@ -99,6 +99,7 @@ class Network:
             print(f'Epoch {epoch + 1}/{epochs} - Loss: {np.mean(self.loss):.4f} - Val Loss: {val_loss:.4f} - Val Accuracy: {val_acc * 100:.2f}%')
             self.loss = []
             self.val_loss = []
+        print('Training finished')
 
     def check_early_stopping(self, val_loss, epoch_nb):
         # TODO? restore best weights and biases
@@ -112,7 +113,6 @@ class Network:
             print(f'Early stopping after {epoch_nb + 1} epochs')
             return 2
         return 1
-
 
     # Stochastic Gradient Descent
     def SGD(self, X_train, y_train, X_val, y_val, epochs, lr, batch_size):
@@ -134,6 +134,8 @@ class Network:
             print(f'Epoch {epoch + 1}/{epochs} - Loss: {np.mean(self.loss):.4f} - Val Loss: {val_loss:.4f} - Val Accuracy: {val_acc * 100:.2f}%')
             self.loss = []
             self.val_loss = []
+        print('Training finished')
+
 
     # Nesterov Accelerated Gradient
     def NAG(self, X_train, y_train, X_val, y_val, epochs, lr, batch_size, mu=0.9, early_stopping=False):
@@ -181,6 +183,7 @@ class Network:
                     self.weights = self.best_weights
                     self.biases = self.best_biases
                     break
+        print('Training finished')
             
 
     # Root Mean Square Propagation
@@ -227,6 +230,9 @@ class Network:
                     self.weights = self.best_weights
                     self.biases = self.best_biases
                     break
+
+        print('Training finished')
+
     
     # Adaptive Moment Estimation
     def Adam(self, X_train, y_train, X_val, y_val, batch_size, epochs, lr, mu=0.9, beta=0.999, epsilon=1e-8, early_stopping=False):
@@ -291,6 +297,7 @@ class Network:
                     self.weights = self.best_weights
                     self.biases = self.best_biases
                     break
+        print('Training finished')
         self.plot_progress()
 
     def Adam_KFold(self, kf_gen, batch_size, epochs, lr, mu=0.9, beta=0.999, epsilon=1e-8, early_stopping=False):
@@ -368,6 +375,7 @@ class Network:
                     self.weights = self.best_weights
                     self.biases = self.best_biases
                     break
+        print('Training finished')
         self.plot_progress()
 
     def plot_progress(self):
@@ -380,3 +388,6 @@ class Network:
 
     def predict(self, X):
         return np.argmax(self.feedforward(X), axis=0)
+    
+    def save(self, path):
+        np.savez(path, weights=self.weights, biases=self.biases)
