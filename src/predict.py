@@ -27,15 +27,17 @@ def predict(X, y, compare=False, epsilon=1e-8):
     network = Network([26, 24, 24, 2], biases=biases, weights=weights)
 
     y_pred, y_prob = network.predict(X)
+    # print(y_pred)
+    # print(y_prob)
     loss = log_loss(y, y_prob, eps=epsilon)
-    accuracy = accuracy(y, y_pred)
-    precision = precision(y, y_pred)
-    recall = recall(y, y_pred)
+    acc = accuracy(y, y_pred)
+    prec = precision(y, y_pred)
+    rec = recall(y, y_pred)
     f1 = f1_score(y, y_pred)
     spe = specificity(y, y_pred)
 
     if compare == False:
-        print(f"Loss: {loss:.6f} | Accuracy: {accuracy * 100:.2f}% | Precision: {precision  * 100:.2f}% | Recall: {recall  * 100:.2f}% | F1 Score: {f1:.6f} | Specificity: {spe * 100:.2f}%")
+        print(f"Loss: {loss:.6f} | Accuracy: {acc * 100:.2f}% | Precision: {prec  * 100:.2f}% | Recall: {rec  * 100:.2f}% | F1 Score: {f1:.6f} | Specificity: {spe * 100:.2f}%")
     return accuracy, precision, recall, f1
 
 if __name__ == "__main__":

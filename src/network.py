@@ -407,8 +407,8 @@ class Network:
         plt.show()
 
     def predict(self, X):
-        y_pred = self.feedforward(X.T)
-        res = np.argmax(self.feedforward(X.T), axis=0) ^ 1
+        y_pred = np.array([self.feedforward(x.reshape(-1, 1)).flatten() for x in X])
+        res = np.argmax(y_pred.T, axis=0) ^ 1
         print('Prediction finished')
         return res, y_pred[:, 0] # maglinant tumor detection, probability given to the maglinant tumor
 
