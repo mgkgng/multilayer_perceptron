@@ -2,9 +2,13 @@ import os, sys
 import numpy as np
 from network import Network
 from preprocess import load_data, preprocess_data
-from sklearn.metrics import log_loss, accuracy_score, precision_score, recall_score, f1_score
+from metrics import accuracy, precision, recall, f1_score, specificity
 
 NUM_LAYERS = 4
+
+def log_loss(y_true, y_pred, eps=1e-8):
+    y_pred = np.clip(y_pred, eps, 1 - eps)
+    return -np.mean(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
 
 def load_params(path):
     biases = []
@@ -24,13 +28,14 @@ def predict(X, y, y_prime=None, compare=False, epsilon=1e-8):
 
     y_pred = network.predict(X)
     loss = log_loss(y, network.result(X).T, eps=epsilon)
-    accuracy = accuracy_score(y, y_pred)
-    precision = precision_score(y, y_pred)
-    recall = recall_score(y, y_pred)
+    accuracy = accuracy(y, y_pred)
+    precision = precision(y, y_pred)
+    recall = recall(y, y_pred)
     f1 = f1_score(y, y_pred)
+    spe = specificity(y, y_pred)
 
     if compare == False:
-        print(f"Loss: {loss:.6f} | Accuracy: {accuracy * 100:.2f}% | Precision: {precision  * 100:.2f}% | Recall: {recall  * 100:.2f}% | F1 Score: {f1:.6f}")
+        print(f"Loss: {loss:.6f} | Accuracy: {accuracy * 100:.2f}% | Precision: {precision  * 100:.2f}% | Recall: {recall  * 100:.2f}% | F1 Score: {f1:.6f} | Specificity: {spe * 100:.2f}%")
     return accuracy, precision, recall, f1
 
 if __name__ == "__main__":
