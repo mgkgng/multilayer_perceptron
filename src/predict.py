@@ -22,12 +22,12 @@ def load_params(path):
         weights.append(np.load(wfile))
     return biases, weights
 
-def predict(X, y, y_prime=None, compare=False, epsilon=1e-8):
+def predict(X, y, compare=False, epsilon=1e-8):
     biases, weights = load_params('../assets/')
     network = Network([26, 24, 24, 2], biases=biases, weights=weights)
 
-    y_pred = network.predict(X)
-    loss = log_loss(y, network.result(X).T, eps=epsilon)
+    y_pred, y_prob = network.predict(X)
+    loss = log_loss(y, y_prob, eps=epsilon)
     accuracy = accuracy(y, y_pred)
     precision = precision(y, y_pred)
     recall = recall(y, y_pred)
@@ -43,5 +43,14 @@ if __name__ == "__main__":
         raise ValueError("Please specify the path to the data file as the first argument.")
     train_df = load_data(sys.argv[1])
     X, y = preprocess_data(train_df, predict=True)
-    yy = np.argmax(y, axis=1)
-    predict(X, yy, y_prime=y)
+
+    # Remark:
+    # When predicting, should keep the focus on the project's target result. (Here, it is to detect malignant tumors.)
+    # Although this is a binary classification problem, we still use the softmax activation function (as requested in the assignment) followed by one-hot encoding in the data preprocessing step.
+    # That's why it would be nice to place the target result (whether the tumor is malignant or not) in the second column (index 1).
+    # In this way, the value in the second column of my prediction will correspond to the probability of the tumor being malignant according to the model.
+    # Furthermore, by following this method, we can easily use np.argmax(y, axis=1) which will simply indicate whether the tumor is malignant or not.
+    # (However, I decided to use the XOR operation to flip the target result in this case.)
+    
+    y = np.argmax(y, axis=1) ^ 1 # malignant = 0, benign = 1 -> malignant = 1, benign = 0
+    predict(X, y)
