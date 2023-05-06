@@ -16,6 +16,8 @@ def recall(y_true, y_pred):
 def f1_score(y_true, y_pred):
     prec = precision(y_true, y_pred)
     rec = recall(y_true, y_pred)
+    if prec + rec == 0:
+        return 0
     return 2 * (prec * rec) / (prec + rec)
 
 def specificity(y_true, y_pred):
