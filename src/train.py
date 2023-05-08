@@ -9,9 +9,9 @@ def train(df, method='Default', compare=False):
 
     network = Network([26, 24, 24, 2], compare=compare)
     if method == 'Default':
-        network.train_default(X_train, y_train, X_val, y_val, epochs=250, lr=0.01)
+        network.train_default(X_train, y_train, X_val, y_val, epochs=1000, lr=0.01)
     elif method == 'SGD':
-        network.SGD(X_train, y_train, X_val, y_val, epochs=250, lr=0.03, batch_size=32)
+        network.SGD(X_train, y_train, X_val, y_val, epochs=1000, lr=0.01, batch_size=32, early_stopping=True)
     elif method == 'NAG':
         network.NAG(X_train, y_train, X_val, y_val, epochs=500, lr=0.01, batch_size=32, mu=0.4, early_stopping=True)
     elif method == 'RMSProp':
@@ -26,5 +26,5 @@ def train(df, method='Default', compare=False):
 
 if __name__ == '__main__':
     train_df = load_data('../assets/data.csv')
-    train(train_df, 'Default')
+    train(train_df, 'SGD')
 

@@ -8,6 +8,7 @@ class Network:
             raise ValueError('At least two hidden layers are required.')
         self.num_layers = len(sizes)
         self.sizes = sizes
+        np.random.seed(seed=42)
         self.biases = kwargs.get('biases', [np.random.randn(y, 1) for y in sizes[1:]])
         self.weights = kwargs.get('weights', [np.random.randn(y, x) for x, y in zip(sizes[:-1], sizes[1:])])
         self.zs = []
@@ -119,8 +120,13 @@ class Network:
             self.plot_progress()
 
     # Stochastic Gradient Descent
-    def SGD(self, X_train, y_train, X_val, y_val, epochs, lr, batch_size):
+    def SGD(self, X_train, y_train, X_val, y_val, epochs, lr, batch_size, early_stopping=False):
         mini_batches = MiniBatchGenerator(X_train, y_train, batch_size)
+        
+        if early_stopping:
+            self.best_val_loss = np.inf
+            self.stagnated_epochs_nb = 0        
+        
         for epoch in range(epochs):
             for X_batch, y_batch in mini_batches:
                 nabla_b = [np.zeros(b.shape) for b in self.biases]
@@ -140,6 +146,18 @@ class Network:
             self.loss = []
             self.val_loss = []
             self.loss_progress.append(val_loss)
+
+            if early_stopping:
+                res = self.check_early_stopping(val_loss, epoch)
+                if res == 0:
+                    self.best_weights = self.weights
+                    self.best_biases = self.biases
+                elif res == 2:
+                    # Restore best weights and biases
+                    self.weights = self.best_weights
+                    self.biases = self.best_biases
+                    break
+
         print('Training finished')
         if self.compare == False:
             self.plot_progress()
